@@ -1,0 +1,35 @@
+flags_map:
+  Version: github.com/choria-io/prometheus-file-exporter/cmd.Version
+  SHA: github.com/choria-io/prometheus-file-exporter/cmd.Sha
+  DefaultPath: github.com/choria-io/prometheus-file-exporter/cmd.DefaultPath
+
+foss:
+  compile_targets:
+    defaults:
+      output: prometheus-file-exporter-{{version}}-{{os}}-{{arch}}
+      flags:
+        DefaultPath: /var/lib/prometheus-file-exporter
+
+    64bit_linux:
+      os: linux
+      arch: amd64
+
+  packages:
+    defaults:
+      name: prometheus-file-exporter
+      bindir: /usr/bin
+      datadir: /var/lib/prometheus-file-exporter
+      release: 1
+      shortname: pfe
+
+    el6_64:
+      dist: el6
+      template: el/el6
+      target_arch: x86_64
+      binary: 64bit_linux
+
+    el7_64:
+      dist: el7
+      template: el/el7
+      target_arch: x86_64
+      binary: 64bit_linux

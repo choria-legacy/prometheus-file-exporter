@@ -1,0 +1,14 @@
+[Unit]
+Description=The Choria Prometheus File Exporter
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/{{cpkg_name}}
+StandardOutput=syslog
+StandardError=syslog
+User=nobody
+Group=nobody
+ExecStart={{cpkg_bindir}}/{{cpkg_shortname}} export --path={{cpkg_datadir}}  --logfile=/var/log/{{cpkg_name}}.log --port=${PORT}
+
+[Install]
+WantedBy=multi-user.target

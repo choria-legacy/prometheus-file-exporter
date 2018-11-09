@@ -1,0 +1,1 @@
+{"type":"gauge","name":"test_test","labels":{"one":"two"},"timestamp":1541672381047096265,"value":20}

@@ -1,0 +1,145 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.10
+
+    working_directory: /go/src/github.com/choria-io/prometheus-file-exporter
+
+    steps:
+      - checkout
+      - run: go get github.com/Masterminds/glide
+      - run: glide install
+      - run: ginkgo -r -skipMeasurements
+      - run: mkdir -p /tmp/workspace
+      - run: cd .. ; tar -czf /tmp/workspace/prometheus-file-exporter.tgz prometheus-file-exporter
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - prometheus-file-exporter.tgz
+
+  build_el6_64bit_rpms: &pkg_build
+    docker:
+      - image: circleci/golang:1.10
+
+    working_directory: /go/src/github.com/choria-io/prometheus-file-exporter
+
+    environment:
+      PACKAGE: el6_64
+      BUILD: foss
+      BUILDER: choria/packager:el5-go1.10
+
+    steps: &std_build_steps
+      - setup_remote_docker
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - run: docker create -v /go -v /build/artifacts --name store alpine:3.4 /bin/true
+      - run: cd .. ; tar -xzf /tmp/workspace/prometheus-file-exporter.tgz
+
+      - run: docker cp /go store:/
+
+      - run: |
+          VERSION="${CIRCLE_TAG}"
+
+          if [ -z "${CIRCLE_TAG}" ]
+          then
+            VERSION=${CIRCLE_SHA1}
+
+            if [ ! -z "${NIGHTLY}" ]
+            then
+              VERSION="0.99.0.$(date +'%Y%m%d')"
+            fi
+          fi
+
+          docker run --volumes-from store --rm -e SOURCE_DIR=/go/src/github.com/choria-io/prometheus-file-exporter -e SHA1=${CIRCLE_SHA1} -e BUILD=${BUILD} -e VERSION=${VERSION} -e ARTIFACTS=/build/artifacts -e PACKAGE=${PACKAGE} ${BUILDER}
+
+      - run: |
+          mkdir -p /tmp/workspace/artifacts/${BUILD}/${PACKAGE}
+          for i in $(docker run --volumes-from store --rm ${BUILDER} ls /build/artifacts);do
+            docker cp store:/build/artifacts/${i} /tmp/workspace/artifacts/${BUILD}/${PACKAGE}
+          done
+          ls -l /tmp/workspace/artifacts/${BUILD}/${PACKAGE}
+
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - artifacts
+
+  build_el6_32bit_rpms:
+    <<: *pkg_build
+    environment:
+      PACKAGE: el6_32
+      BUILD: foss
+      BUILDER: choria/packager:el7-go1.10
+
+  build_el7_64bit_rpms:
+    <<: *pkg_build
+    environment:
+      PACKAGE: el7_64
+      BUILD: foss
+      BUILDER: choria/packager:el7-go1.10
+
+  gather_artifacts:
+    docker:
+      - image: circleci/golang:1.10
+
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - store_artifacts:
+          path: /tmp/workspace
+
+workflows:
+  version: 2
+
+  test_and_ship:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /.+/
+
+      - build_el6_32bit_rpms:
+          requires:
+            - test
+          filters: &semver_only
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
+
+      - build_el6_64bit_rpms:
+          requires:
+            - test
+          filters:
+            *semver_only
+
+      - build_el7_64bit_rpms:
+          requires:
+            - test
+          filters:
+            *semver_only
+
+      - gather_artifacts:
+          requires:
+             - build_el6_32bit_rpms
+             - build_el6_64bit_rpms
+             - build_el7_64bit_rpms
+          filters:
+            *semver_only
+
+      - release_hold:
+          type: approval
+          requires:
+            - gather_artifacts
+          filters:
+            *semver_only
+
+      - release_packagecloud:
+          requires:
+            - release_hold
+          filters:
+            *semver_only
