@@ -68,13 +68,6 @@ jobs:
           paths:
             - artifacts
 
-  build_el6_32bit_rpms:
-    <<: *pkg_build
-    environment:
-      PACKAGE: el6_32
-      BUILD: foss
-      BUILDER: choria/packager:el7-go1.10
-
   build_el7_64bit_rpms:
     <<: *pkg_build
     environment:
@@ -126,7 +119,6 @@ workflows:
 
       - gather_artifacts:
           requires:
-             - build_el6_32bit_rpms
              - build_el6_64bit_rpms
              - build_el7_64bit_rpms
           filters:
