@@ -45,9 +45,13 @@ func Run() {
 	exporter.Flag("port", "The port to listen on ").Default("8080").IntVar(&port)
 	exporter.Flag("pid", "Write running PID to a file").StringVar(&pidfile)
 
-	gaugea := app.Command("guage", "Writes to a gauge metric")
+	gaugea := app.Command("gauge", "Writes to a gauge metric")
 	gaugea.Arg("metric", "The name of the metric to write").Required().StringVar(&metricName)
 	gaugea.Arg("value", "The value to write").Required().Float64Var(&value)
+
+	guagea := app.Command("guage", "Writes to a gauge metric").Hidden()
+	guagea.Arg("metric", "The name of the metric to write").Required().StringVar(&metricName)
+	guagea.Arg("value", "The value to write").Required().Float64Var(&value)
 
 	countera := app.Command("counter", "Increments a counter metric")
 	countera.Arg("metric", "The metric name to write").Required().StringVar(&metricName)
@@ -85,6 +89,8 @@ func Run() {
 	case exporter.FullCommand():
 		err = export()
 	case gaugea.FullCommand():
+		err = gauge()
+	case guagea.FullCommand():
 		err = gauge()
 	case countera.FullCommand():
 		err = counter()
