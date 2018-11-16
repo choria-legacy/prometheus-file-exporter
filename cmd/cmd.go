@@ -23,6 +23,7 @@ var (
 	pidfile string
 	err     error
 	app     *kingpin.Application
+	filter  string
 
 	metricName string
 	value      float64
@@ -49,6 +50,7 @@ func Run() {
 	gaugea.Arg("metric", "The name of the metric to write").Required().StringVar(&metricName)
 	gaugea.Arg("value", "The value to write").Required().Float64Var(&value)
 
+	// this command is a typo - guage - its kept here and Hidden() to provide backward compat
 	guagea := app.Command("guage", "Writes to a gauge metric").Hidden()
 	guagea.Arg("metric", "The name of the metric to write").Required().StringVar(&metricName)
 	guagea.Arg("value", "The value to write").Required().Float64Var(&value)
@@ -56,6 +58,9 @@ func Run() {
 	countera := app.Command("counter", "Increments a counter metric")
 	countera.Arg("metric", "The metric name to write").Required().StringVar(&metricName)
 	countera.Flag("inc", "How much to increment the counter with").Default("1").FloatVar(&value)
+
+	lista := app.Command("list", "Lists known metrics")
+	lista.Arg("filter", "Limit output to metrics containing the filter text").Default("").StringVar(&filter)
 
 	command := kingpin.MustParse(app.Parse(os.Args[1:]))
 	log = logrus.NewEntry(logrus.New())
@@ -94,6 +99,8 @@ func Run() {
 		err = gauge()
 	case countera.FullCommand():
 		err = counter()
+	case lista.FullCommand():
+		err = list()
 	}
 
 	if err != nil {

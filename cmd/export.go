@@ -9,7 +9,7 @@ import (
 )
 
 func export() error {
-	_, err := metrics.New(ctx, path, log)
+	_, err := metrics.New(ctx, path, true, log)
 	if err != nil {
 		return fmt.Errorf("could not set up metrics exporter: %s", err)
 	}

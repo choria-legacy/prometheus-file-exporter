@@ -41,7 +41,7 @@ type Metrics struct {
 }
 
 // New creates a metric listener for a directory
-func New(ctx context.Context, p string, log *logrus.Entry) (*Metrics, error) {
+func New(ctx context.Context, p string, watch bool, log *logrus.Entry) (*Metrics, error) {
 	path, err := filepath.Abs(p)
 	if err != nil {
 		return nil, err
@@ -54,16 +54,23 @@ func New(ctx context.Context, p string, log *logrus.Entry) (*Metrics, error) {
 		log:     log.WithFields(logrus.Fields{"path": path}),
 	}
 
-	err = metrics.startNotify()
-	if err != nil {
-		return nil, fmt.Errorf("filesystem notifier setup failed: %s", err)
-	}
+	if watch {
+		err = metrics.startNotify()
+		if err != nil {
+			return nil, fmt.Errorf("filesystem notifier setup failed: %s", err)
+		}
 
-	go metrics.watch(ctx)
+		go metrics.watch(ctx)
+	}
 
 	metrics.initializeFromDisk()
 
 	return metrics, nil
+}
+
+// Metrics retrieves the metric list
+func (m *Metrics) Metrics() map[string]*Metric {
+	return m.metrics
 }
 
 func (m *Metrics) loadMetric(f string) error {

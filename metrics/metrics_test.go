@@ -39,7 +39,7 @@ var _ = Describe("Metrics", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			metrics, err := New(ctx, path, log)
+			metrics, err := New(ctx, path, true, log)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(metrics.metrics).To(HaveKey(filepath.Join(path, "valid.json")))
 			Expect(metrics.metrics).ToNot(HaveKey(filepath.Join(path, "test_test.json")))
@@ -63,7 +63,7 @@ var _ = Describe("Metrics", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			metrics, err := New(ctx, path, log)
+			metrics, err := New(ctx, path, true, log)
 			Expect(err).ToNot(HaveOccurred())
 
 			metric := NewMetric("test_test", map[string]string{})
@@ -81,7 +81,6 @@ var _ = Describe("Metrics", func() {
 			Expect(err).ToNot(HaveOccurred())
 			time.Sleep(20 * time.Millisecond)
 			Expect(metrics.metrics[tfile].Value).To(Equal(float64(20)))
-
 		})
 	})
 })
